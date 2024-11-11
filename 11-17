@@ -1,0 +1,1899 @@
+                                                                                  11.Verificar si una cadena es palíndromo
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción: verificar si una cadena es palindromo
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+ .data
+msg_prompt: .asciz "Ingresa una cadena: " // Mensaje para solicitar la cadena
+msg_result_palindrome: .asciz "Es un palíndromo\n" // Mensaje si la cadena es palíndromo
+msg_result_not_palindrome: .asciz "No es un palíndromo\n" // Mensaje si la cadena no es palíndromo
+fmt_str: .asciz "%s" // Formato para leer cadenas
+
+    .text
+    .global main
+
+main:
+    // Guardar el puntero de marco y el enlace de retorno
+    stp x29, x30, [sp, -32]! // Reservar espacio en la pila
+    mov x29, sp // Establecer el puntero de marco
+    sub sp, sp, #256 // Reservar espacio para la cadena en la pila
+
+    // Solicitar la cadena
+    ldr x0, =msg_prompt // Cargar el mensaje para la cadena
+    bl printf // Imprimir el mensaje
+    ldr x0, =fmt_str // Cargar el formato para leer una cadena
+    mov x1, sp // Dirección donde se guardará la cadena en la pila
+    bl scanf // Leer la cadena desde el usuario
+
+    // Cargar la cadena desde la pila
+    mov x0, sp // Dirección de la cadena en x0
+    bl is_palindrome // Llamar a la función para verificar si es palíndromo
+
+    // Comprobar el resultado
+    cmp w0, #1 // Comparar el resultado con 1 (palíndromo)
+    beq print_palindrome // Si es igual, ir a print_palindrome
+
+print_not_palindrome:
+    ldr x0, =msg_result_not_palindrome // Cargar el mensaje "No es un palíndromo"
+    bl printf // Imprimir el mensaje
+    b end // Ir al final del programa
+
+print_palindrome:
+    ldr x0, =msg_result_palindrome // Cargar el mensaje "Es un palíndromo"
+    bl printf // Imprimir el mensaje
+
+end:
+    // Restaurar el puntero de pila y regresar
+    add sp, sp, #256 // Restaurar el puntero de pila
+    ldp x29, x30, [sp], 32 // Restaurar el puntero de marco y el enlace de retorno
+    ret // Regresar del programa
+
+// Función para verificar si una cadena es palíndromo
+// Entrada: x0 - dirección de la cadena
+// Salida: w0 - 1 si es palíndromo, 0 si no lo es
+is_palindrome:
+    // Guardar punteros
+    mov x1, x0 // Guardar el inicio de la cadena en x1
+    mov x2, x0 // Guardar el final de la cadena en x2
+
+find_end:
+    ldrb w3, [x2], #1 // Leer el siguiente carácter de la cadena
+    cmp w3, #0 // Comparar con el final de la cadena (NULL)
+    bne find_end // Continuar hasta encontrar el NULL
+    sub x2, x2, #2 // Retroceder un carácter
+
+check_palindrome:
+    cmp x1, x2 // Comparar los punteros (inicio >= final)
+    bge palindrome // Si se cruzan, es un palíndromo
+
+    ldrb w3, [x1], #1 // Leer el carácter de inicio
+    ldrb w4, [x2], #-1 // Leer el carácter de final
+    cmp w3, w4 // Comparar los caracteres
+    bne not_palindrome // Si no coinciden, no es un palíndromo
+
+    b check_palindrome // Continuar con el siguiente par
+
+palindrome:
+    mov w0, #1 // Retornar 1 (es palíndromo)
+    ret
+
+not_palindrome:
+    mov w0, #0 // Retornar 0 (no es palíndromo)
+    ret
+----------------------------------------------------------------Codigo en C# de Verificar si una cadena es palíndromo
+using System;
+
+class Program
+{
+    // Función principal
+    static void Main()
+    {
+        // Solicitar la cadena al usuario
+        Console.Write("Ingresa una cadena: ");
+        string input = Console.ReadLine();
+
+        // Verificar si la cadena es un palíndromo
+        bool isPalindrome = IsPalindrome(input);
+
+        // Imprimir el resultado
+        if (isPalindrome)
+        {
+            Console.WriteLine("Es un palíndromo");
+        }
+        else
+        {
+            Console.WriteLine("No es un palíndromo");
+        }
+    }
+
+    // Función para verificar si una cadena es palíndromo
+    // Entrada: cadena (string)
+    // Salida: true si es palíndromo, false si no lo es
+    static bool IsPalindrome(string str)
+    {
+        int left = 0;
+        int right = str.Length - 1;
+
+        // Comparar los caracteres de inicio y fin
+        while (left < right)
+        {
+            // Ignorar espacios y hacer comparación case insensitive
+            while (left < right && !char.IsLetterOrDigit(str[left])) left++;
+            while (left < right && !char.IsLetterOrDigit(str[right])) right--;
+
+            // Comparar caracteres
+            if (char.ToLower(str[left]) != char.ToLower(str[right]))
+            {
+                return false; // No es palíndromo
+            }
+
+            left++;
+            right--;
+        }
+
+        return true; // Es palíndromo
+    }
+}
+
+
+                                                                12.Encontrar el máximo en un arreglo
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:Encontrar el maximo en un arreglo
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+   .data
+array:      .word 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 // Arreglo de ejemplo
+arr_len:    .word 10                                    // Longitud del arreglo
+msg_result: .asciz "El valor máximo en el arreglo es: %d\n" // Mensaje para imprimir el resultado
+
+    .text
+    .global main
+
+main:
+    // Guardar el puntero de marco y el enlace de retorno
+    stp x29, x30, [sp, -16]!     // Reservar espacio en la pila
+    mov x29, sp                  // Establecer el puntero de marco
+    
+    // Cargar la dirección y longitud del arreglo
+    adrp x0, arr_len             // Cargar la página base de arr_len en x0
+    add x0, x0, :lo12:arr_len    // Cargar el desplazamiento bajo de arr_len
+    ldr w1, [x0]                 // Obtener la longitud del arreglo en w1
+    adrp x2, array               // Cargar la página base de array en x2
+    add x2, x2, :lo12:array      // Cargar el desplazamiento bajo de array
+
+    // Inicializar el valor máximo
+    ldr w3, [x2]                 // Cargar el primer elemento del arreglo en w3 como máximo inicial
+    add x2, x2, #4               // Avanzar a la siguiente posición en el arreglo
+    sub w1, w1, #1               // Decrementar el contador de elementos
+
+loop:
+    cbz w1, end_loop             // Si el contador llega a cero, salir del bucle
+    ldr w4, [x2]                 // Cargar el siguiente elemento en w4
+    cmp w3, w4                   // Comparar w3 (máximo actual) con w4 (nuevo valor)
+    csel w3, w3, w4, gt          // Si w3 > w4, mantener w3; si no, actualizar w3 con w4
+    add x2, x2, #4               // Avanzar a la siguiente posición en el arreglo
+    sub w1, w1, #1               // Decrementar el contador de elementos
+    b loop                       // Repetir el bucle
+
+end_loop:
+    // Imprimir el resultado
+    adrp x0, msg_result          // Cargar la página base de msg_result en x0
+    add x0, x0, :lo12:msg_result // Cargar el desplazamiento bajo de msg_result
+    mov w1, w3                   // Mover el valor máximo a w1 para printf
+    bl printf                    // Imprimir el valor máximo en el arreglo
+
+    // Restaurar el puntero de pila y regresar
+    ldp x29, x30, [sp], 16       // Restaurar el puntero de marco y el enlace de retorno
+    ret                          // Regresar del programa
+----------------------------------------------------------------Codigo en C# de Encontrar el máximo en un arreglo
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Definir el arreglo de ejemplo
+        int[] array = { 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 };
+        int arrLen = array.Length;
+
+        // Encontrar el valor máximo en el arreglo
+        int maxValue = FindMaxValue(array, arrLen);
+
+        // Imprimir el resultado
+        Console.WriteLine($"El valor máximo en el arreglo es: {maxValue}");
+    }
+
+    // Función para encontrar el valor máximo en un arreglo
+    // Entrada: arreglo de enteros y longitud del arreglo
+    // Salida: valor máximo
+    static int FindMaxValue(int[] array, int length)
+    {
+        // Inicializar el valor máximo con el primer elemento del arreglo
+        int max = array[0];
+
+        // Recorrer el arreglo para encontrar el valor máximo
+        for (int i = 1; i < length; i++)
+        {
+            if (array[i] > max)
+            {
+                max = array[i]; // Actualizar el valor máximo
+            }
+        }
+
+        return max; // Retornar el valor máximo
+    }
+}
+
+                                                                13.Encontrar el mínimo en un arreglo	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:Encontrar el minimo en un arreglo
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+  .data
+array:      .word 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 // Arreglo de ejemplo
+arr_len:    .word 10                                    // Longitud del arreglo
+msg_result: .asciz "Arreglo: 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 "
+msg_result: .asciz "El valor mínimo en el arreglo es: %d\n" // Mensaje para imprimir el resultado
+
+    .text
+    .global main
+
+main:
+    // Guardar el puntero de marco y el enlace de retorno
+    stp x29, x30, [sp, -16]!     // Reservar espacio en la pila
+    mov x29, sp                  // Establecer el puntero de marco
+    
+    // Cargar la dirección y longitud del arreglo
+    adrp x0, arr_len             // Cargar la página base de arr_len en x0
+    add x0, x0, :lo12:arr_len    // Cargar el desplazamiento bajo de arr_len
+    ldr w1, [x0]                 // Obtener la longitud del arreglo en w1
+    adrp x2, array               // Cargar la página base de array en x2
+    add x2, x2, :lo12:array      // Cargar el desplazamiento bajo de array
+
+    // Inicializar el valor mínimo
+    ldr w3, [x2]                 // Cargar el primer elemento del arreglo en w3 como mínimo inicial
+    add x2, x2, #4               // Avanzar a la siguiente posición en el arreglo
+    sub w1, w1, #1               // Decrementar el contador de elementos
+
+loop:
+    cbz w1, end_loop             // Si el contador llega a cero, salir del bucle
+    ldr w4, [x2]                 // Cargar el siguiente elemento en w4
+    cmp w3, w4                   // Comparar w3 (mínimo actual) con w4 (nuevo valor)
+    csel w3, w3, w4, lt          // Si w3 < w4, mantener w3; si no, actualizar w3 con w4
+    add x2, x2, #4               // Avanzar a la siguiente posición en el arreglo
+    sub w1, w1, #1               // Decrementar el contador de elementos
+    b loop                       // Repetir el bucle
+
+end_loop:
+    // Imprimir el resultado
+    adrp x0, msg_result          // Cargar la página base de msg_result en x0
+    add x0, x0, :lo12:msg_result // Cargar el desplazamiento bajo de msg_result
+    mov w1, w3                   // Mover el valor mínimo a w1 para printf
+    bl printf                    // Imprimir el valor mínimo en el arreglo
+
+    // Restaurar el puntero de pila y regresar
+    ldp x29, x30, [sp], 16       // Restaurar el puntero de marco y el enlace de retorno
+    ret                          // Regresar del programa
+----------------------------------------------------------------Codigo en C# de
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Definir el arreglo de ejemplo
+        int[] array = { 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 };
+        int arrLen = array.Length;
+
+        // Imprimir el arreglo
+        Console.Write("Arreglo: ");
+        for (int i = 0; i < arrLen; i++)
+        {
+            Console.Write(array[i]);
+            if (i < arrLen - 1)
+                Console.Write(", ");
+        }
+        Console.WriteLine();
+
+        // Encontrar el valor mínimo en el arreglo
+        int minValue = FindMinValue(array, arrLen);
+
+        // Imprimir el resultado
+        Console.WriteLine($"El valor mínimo en el arreglo es: {minValue}");
+    }
+
+    // Función para encontrar el valor mínimo en un arreglo
+    // Entrada: arreglo de enteros y longitud del arreglo
+    // Salida: valor mínimo
+    static int FindMinValue(int[] array, int length)
+    {
+        // Inicializar el valor mínimo con el primer elemento del arreglo
+        int min = array[0];
+
+        // Recorrer el arreglo para encontrar el valor mínimo
+        for (int i = 1; i < length; i++)
+        {
+            if (array[i] < min)
+            {
+                min = array[i]; // Actualizar el valor mínimo
+            }
+        }
+
+        return min; // Retornar el valor mínimo
+    }
+}
+
+                                                                14.Búsqueda lineal	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción: busqueda lineal
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+   .data
+array:      .word 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 // Arreglo de ejemplo
+arr_len:    .word 10                                    // Longitud del arreglo
+target:     .word 23                                    // Valor a buscar
+msg_found:  .asciz "El valor %d se encuentra en el arreglo.\n" // Mensaje cuando se encuentra el valor
+msg_not_found: .asciz "El valor %d NO se encuentra en el arreglo.\n" // Mensaje cuando no se encuentra el valor
+
+    .text
+    .global main
+
+main:
+    // Guardar el puntero de marco y el enlace de retorno
+    stp x29, x30, [sp, -16]!     // Reservar espacio en la pila
+    mov x29, sp                  // Establecer el puntero de marco
+    
+    // Cargar la dirección y longitud del arreglo
+    adrp x0, arr_len             // Cargar la página base de arr_len en x0
+    add x0, x0, :lo12:arr_len    // Cargar el desplazamiento bajo de arr_len
+    ldr w1, [x0]                 // Obtener la longitud del arreglo en w1
+    adrp x2, array               // Cargar la página base de array en x2
+    add x2, x2, :lo12:array      // Cargar el desplazamiento bajo de array
+    adrp x3, target              // Cargar la página base de target en x3
+    add x3, x3, :lo12:target     // Cargar el desplazamiento bajo de target
+    ldr w5, [x3]                 // Cargar el valor objetivo en w5
+
+    // Inicializar el índice
+    mov x6, #0                   // Índice inicial (x6) = 0
+
+loop:
+    // Comparar el índice (x6) con la longitud del arreglo (w1)
+    // Se usa `w6` como una extensión de 32 bits de `x6`
+    cmp w6, w1                   // Comparar x6 (como w6) con w1
+    bge end_loop                 // Si el índice es mayor o igual, salir del bucle
+    ldr w4, [x2, x6, LSL #2]     // Cargar el valor del arreglo en w4 (multiplicamos x6 por 4)
+    cmp w4, w5                   // Comparar el valor en el arreglo (w4) con el valor objetivo (w5)
+    beq found                    // Si el valor es igual, saltar a la etiqueta found
+    add x6, x6, #1               // Incrementar el índice
+    b loop                       // Continuar con la siguiente iteración
+
+found:
+    // Imprimir el mensaje de valor encontrado
+    adrp x0, msg_found           // Cargar la página base de msg_found en x0
+    add x0, x0, :lo12:msg_found  // Cargar el desplazamiento bajo de msg_found
+    mov w1, w5                   // Mover el valor encontrado (w5) a w1 para printf
+    bl printf                    // Llamar a printf para imprimir el mensaje
+
+    b end_program                // Ir al final del programa
+
+end_loop:
+    // Imprimir el mensaje de valor no encontrado
+    adrp x0, msg_not_found       // Cargar la página base de msg_not_found en x0
+    add x0, x0, :lo12:msg_not_found // Cargar el desplazamiento bajo de msg_not_found
+    mov w1, w5                   // Mover el valor objetivo (w5) a w1 para printf
+    bl printf                    // Llamar a printf para imprimir el mensaje
+
+end_program:
+    // Restaurar el puntero de pila y regresar
+    ldp x29, x30, [sp], 16       // Restaurar el puntero de marco y el enlace de retorno
+    ret                          // Regresar del programa
+---------------------------------------------------------------Codigo en C# de Búsqueda lineal
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Definir el arreglo de ejemplo y el valor a buscar
+        int[] array = { 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 };
+        int arrLen = array.Length;
+        int target = 23;
+
+        // Buscar el valor en el arreglo
+        bool isFound = SearchValueInArray(array, arrLen, target);
+
+        // Imprimir el resultado
+        if (isFound)
+        {
+            Console.WriteLine($"El valor {target} se encuentra en el arreglo.");
+        }
+        else
+        {
+            Console.WriteLine($"El valor {target} NO se encuentra en el arreglo.");
+        }
+    }
+
+    // Función para buscar un valor en el arreglo
+    // Entrada: arreglo de enteros, longitud del arreglo y el valor objetivo
+    // Salida: true si se encuentra el valor, false si no se encuentra
+    static bool SearchValueInArray(int[] array, int length, int target)
+    {
+        // Recorrer el arreglo para buscar el valor objetivo
+        for (int i = 0; i < length; i++)
+        {
+            if (array[i] == target)
+            {
+                return true; // Valor encontrado
+            }
+        }
+        return false; // Valor no encontrado
+    }
+}
+
+                                                                15.Búsqueda binaria	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:
+ * Dificultad: dificil
+ *---------------------------------------------------------------*/
+.data
+array:      .word 1, 3, 5, 7, 9, 11, 13, 15, 17, 19    // Arreglo ordenado para búsqueda binaria
+arr_len:    .word 10                                    // Longitud del arreglo
+target:     .word 7                                     // Valor a buscar
+msg_found:  .asciz "El valor %d fue encontrado en la posición %d\n"
+msg_not:    .asciz "El valor %d no fue encontrado en el arreglo\n"
+
+    .text
+    .global main
+main:
+    // Guardar el puntero de marco y el enlace de retorno
+    stp x29, x30, [sp, -16]!     // Reservar espacio en la pila
+    mov x29, sp                   // Establecer el puntero de marco
+    
+    // Inicializar registros para búsqueda binaria
+    adrp x0, array               // Cargar la página base del array
+    add x0, x0, :lo12:array      // Cargar el desplazamiento bajo del array
+    
+    mov x1, #0                   // left = 0
+    adrp x2, arr_len            
+    add x2, x2, :lo12:arr_len
+    ldr w2, [x2]                 // Cargar longitud del array
+    sub x2, x2, #1              // right = length - 1
+    
+    adrp x3, target
+    add x3, x3, :lo12:target
+    ldr w3, [x3]                // Cargar valor objetivo
+
+binary_search:
+    cmp x1, x2                   // Comparar left con right
+    bgt not_found               // Si left > right, elemento no encontrado
+    
+    // Calcular mid = (left + right) / 2
+    add x4, x1, x2              // x4 = left + right
+    lsr x4, x4, #1              // x4 = (left + right) / 2
+    
+    // Cargar array[mid]
+    lsl x5, x4, #2              // x5 = mid * 4 (tamaño de word)
+    add x5, x0, x5              // x5 = dirección de array[mid]
+    ldr w6, [x5]                // w6 = array[mid]
+    
+    // Comparar array[mid] con target
+    cmp w6, w3
+    beq found                   // Si son iguales, elemento encontrado
+    blt greater                 // Si array[mid] < target, buscar en mitad superior
+    
+    // Buscar en mitad inferior
+    sub x2, x4, #1              // right = mid - 1
+    b binary_search
+    
+greater:
+    add x1, x4, #1              // left = mid + 1
+    b binary_search
+    
+found:
+    // Imprimir mensaje de éxito
+    adrp x0, msg_found
+    add x0, x0, :lo12:msg_found
+    mov w1, w3                  // Primer argumento: valor buscado
+    mov w2, w4                  // Segundo argumento: posición encontrada
+    bl printf
+    b end
+
+not_found:
+    // Imprimir mensaje de no encontrado
+    adrp x0, msg_not
+    add x0, x0, :lo12:msg_not
+    mov w1, w3                  // Primer argumento: valor buscado
+    bl printf
+
+end:
+    // Restaurar y retornar
+    ldp x29, x30, [sp], 16
+    ret
+---------------------------------------------------------------------Codigo en C# de Búsqueda binaria
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Arreglo ordenado y valor objetivo
+        int[] array = { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 };
+        int arrLen = array.Length;
+        int target = 7;
+
+        // Realizar búsqueda binaria
+        int resultIndex = BinarySearch(array, arrLen, target);
+
+        // Mostrar resultado
+        if (resultIndex != -1)
+        {
+            Console.WriteLine($"El valor {target} fue encontrado en la posición {resultIndex}");
+        }
+        else
+        {
+            Console.WriteLine($"El valor {target} no fue encontrado en el arreglo");
+        }
+    }
+
+    // Función para realizar búsqueda binaria
+    // Entrada: arreglo de enteros, longitud del arreglo y el valor objetivo
+    // Salida: índice donde se encuentra el valor o -1 si no se encuentra
+    static int BinarySearch(int[] array, int length, int target)
+    {
+        int left = 0;
+        int right = length - 1;
+
+        while (left <= right)
+        {
+            // Calcular la posición media
+            int mid = left + (right - left) / 2;
+
+            // Verificar si el valor objetivo está en la posición media
+            if (array[mid] == target)
+            {
+                return mid; // Valor encontrado, retornar índice
+            }
+
+            // Decidir en qué mitad continuar la búsqueda
+            if (array[mid] < target)
+            {
+                left = mid + 1; // Buscar en la mitad derecha
+            }
+            else
+            {
+                right = mid - 1; // Buscar en la mitad izquierda
+            }
+        }
+
+        return -1; // Valor no encontrado
+    }
+}
+
+
+    
+                                                                    16.Ordenamiento burbuja	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+.data
+array:      .word 12, 45, 7, 23, 67, 89, 34, 56, 90, 14  // Arreglo a ordenar
+arr_len:    .word 10                                      // Longitud del arreglo
+msg_before: .asciz "Arreglo antes de ordenar:\n"
+msg_after:  .asciz "Arreglo después de ordenar:\n"
+msg_elem:   .asciz "%d "                                  // Para imprimir cada elemento
+msg_nl:     .asciz "\n"                                   // Nueva línea
+
+    .text
+    .global main
+main:
+    // Guardar el puntero de marco y el enlace de retorno
+    stp x29, x30, [sp, -16]!     // Reservar espacio en la pila
+    mov x29, sp                   // Establecer el puntero de marco
+
+    // Imprimir mensaje inicial
+    adrp x0, msg_before
+    add x0, x0, :lo12:msg_before
+    bl printf
+
+    // Imprimir arreglo original
+    bl print_array
+
+    // Preparar para ordenamiento burbuja
+    adrp x0, arr_len
+    add x0, x0, :lo12:arr_len
+    ldr w0, [x0]                  // w0 = longitud del arreglo
+    mov w1, w0                    // w1 = contador externo
+
+outer_loop:
+    cmp w1, #1                    // Comparar contador con 1
+    ble done_sort                 // Si <= 1, terminamos
+    
+    mov w2, #0                    // w2 = índice para bucle interno
+    sub w3, w1, #1               // w3 = límite del bucle interno
+
+inner_loop:
+    cmp w2, w3                    // Comparar índice con límite
+    bge end_inner                 // Si >= límite, terminar bucle interno
+
+    // Cargar elementos a comparar
+    adrp x4, array
+    add x4, x4, :lo12:array
+    lsl w5, w2, #2               // w5 = índice * 4
+    add x5, x4, w5, UXTW         // x5 = dirección del elemento actual
+    ldr w6, [x5]                 // w6 = elemento actual
+    ldr w7, [x5, #4]             // w7 = siguiente elemento
+
+    // Comparar y intercambiar si es necesario
+    cmp w6, w7                    // Comparar elementos
+    ble no_swap                   // Si están en orden, no intercambiar
+    
+    // Intercambiar elementos
+    str w7, [x5]                 // Guardar elemento menor primero
+    str w6, [x5, #4]             // Guardar elemento mayor después
+
+no_swap:
+    add w2, w2, #1               // Incrementar índice interno
+    b inner_loop                 // Continuar bucle interno
+
+end_inner:
+    sub w1, w1, #1               // Decrementar contador externo
+    b outer_loop                 // Continuar bucle externo
+
+done_sort:
+    // Imprimir mensaje final
+    adrp x0, msg_after
+    add x0, x0, :lo12:msg_after
+    bl printf
+
+    // Imprimir arreglo ordenado
+    bl print_array
+
+    // Restaurar y retornar
+    ldp x29, x30, [sp], 16
+    ret
+
+// Subrutina para imprimir el arreglo
+print_array:
+    stp x29, x30, [sp, -16]!     // Guardar registros
+    
+    adrp x19, array              // Cargar dirección del arreglo
+    add x19, x19, :lo12:array
+    
+    adrp x20, arr_len
+    add x20, x20, :lo12:arr_len
+    ldr w20, [x20]               // Cargar longitud
+    
+    mov w21, #0                  // Inicializar contador
+
+print_loop:
+    cmp w21, w20                 // Comparar contador con longitud
+    bge print_end                // Si terminamos, salir
+    
+    // Imprimir elemento actual
+    adrp x0, msg_elem
+    add x0, x0, :lo12:msg_elem
+    ldr w1, [x19, w21, UXTW #2]  // Cargar elemento actual
+    bl printf
+    
+    add w21, w21, #1             // Incrementar contador
+    b print_loop
+
+print_end:
+    // Imprimir nueva línea
+    adrp x0, msg_nl
+    add x0, x0, :lo12:msg_nl
+    bl printf
+    
+    ldp x29, x30, [sp], 16       // Restaurar registros
+    ret
+---------------------------------------------------------------Codigo e C# de Ordenamiento burbuja
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Arreglo de ejemplo
+        int[] array = { 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 };
+        
+        // Mostrar el arreglo antes de ordenar
+        Console.WriteLine("Arreglo antes de ordenar:");
+        PrintArray(array);
+        
+        // Ordenar el arreglo usando el algoritmo de burbuja
+        BubbleSort(array);
+        
+        // Mostrar el arreglo después de ordenar
+        Console.WriteLine("Arreglo después de ordenar:");
+        PrintArray(array);
+    }
+
+    // Función para imprimir el arreglo
+    static void PrintArray(int[] array)
+    {
+        foreach (int elem in array)
+        {
+            Console.Write($"{elem} ");
+        }
+        Console.WriteLine(); // Nueva línea
+    }
+
+    // Función de ordenamiento burbuja
+    static void BubbleSort(int[] array)
+    {
+        int n = array.Length;
+        
+        // Bucle externo (repite varias pasadas)
+        for (int i = 0; i < n - 1; i++)
+        {
+            // Bucle interno (compara elementos adyacentes)
+            for (int j = 0; j < n - 1 - i; j++)
+            {
+                // Si el elemento actual es mayor que el siguiente, intercambiarlos
+                if (array[j] > array[j + 1])
+                {
+                    // Intercambio de elementos
+                    int temp = array[j];
+                    array[j] = array[j + 1];
+                    array[j + 1] = temp;
+                }
+            }
+        }
+    }
+}
+
+                                                                17.Ordenamiento por selección	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+.data
+array: .word 12, 45, 7, 23, 67, 89, 34, 56, 90, 14    // Arreglo a ordenar
+arr_len: .word 10                                      // Longitud del arreglo
+msg_before: .asciz "Arreglo antes de ordenar:\n"
+msg_after: .asciz "Arreglo después de ordenar:\n"
+msg_elem: .asciz "%d "                                 // Para imprimir cada elemento
+msg_nl: .asciz "\n"                                    // Nueva línea
+
+.text
+.global main
+
+main:
+    // Guardar registros
+    stp x29, x30, [sp, -16]!
+    mov x29, sp
+
+    // Imprimir mensaje inicial
+    adrp x0, msg_before
+    add x0, x0, :lo12:msg_before
+    bl printf
+
+    // Imprimir arreglo original
+    bl print_array
+
+    // Preparar para ordenamiento por selección
+    adrp x0, arr_len
+    add x0, x0, :lo12:arr_len
+    ldr w0, [x0]        // w0 = longitud del arreglo
+    sub w1, w0, #1      // w1 = n-1 para el bucle externo
+
+outer_loop:
+    cmp w1, #0          // Verificar si hemos terminado
+    blt done_sort       // Si w1 < 0, terminamos
+    
+    mov w2, w1          // w2 = índice del máximo actual
+    mov w3, w1          // w3 = contador para bucle interno
+    
+inner_loop:
+    cmp w3, #0          // Verificar si llegamos al inicio
+    blt end_inner       // Si w3 < 0, terminar bucle interno
+    
+    // Cargar elementos a comparar
+    adrp x4, array
+    add x4, x4, :lo12:array
+    
+    lsl w5, w3, #2      // w5 = índice * 4
+    add x5, x4, w5, UXTW    // x5 = dirección del elemento actual
+    lsl w6, w2, #2      // w6 = índice_max * 4
+    add x6, x4, w6, UXTW    // x6 = dirección del máximo actual
+    
+    ldr w7, [x5]        // w7 = elemento actual
+    ldr w8, [x6]        // w8 = elemento máximo actual
+    
+    // Comparar elementos
+    cmp w7, w8
+    ble no_update       // Si actual <= máximo, no actualizar
+    mov w2, w3          // Actualizar índice del máximo
+
+no_update:
+    sub w3, w3, #1      // Decrementar contador interno
+    b inner_loop
+
+end_inner:
+    // Intercambiar elementos si es necesario
+    cmp w2, w1          // Verificar si el máximo está en su posición
+    beq no_swap         // Si está en posición, no intercambiar
+    
+    // Realizar intercambio
+    adrp x4, array
+    add x4, x4, :lo12:array
+    lsl w5, w1, #2      // Calcular offset para posición actual
+    add x5, x4, w5, UXTW
+    lsl w6, w2, #2      // Calcular offset para posición del máximo
+    add x6, x4, w6, UXTW
+    
+    ldr w7, [x5]        // Cargar elemento en posición actual
+    ldr w8, [x6]        // Cargar elemento máximo
+    str w8, [x5]        // Guardar máximo en posición actual
+    str w7, [x6]        // Guardar elemento actual en posición del máximo
+
+no_swap:
+    sub w1, w1, #1      // Decrementar contador externo
+    b outer_loop
+
+done_sort:
+    // Imprimir mensaje final
+    adrp x0, msg_after
+    add x0, x0, :lo12:msg_after
+    bl printf
+
+    // Imprimir arreglo ordenado
+    bl print_array
+
+    // Restaurar y retornar
+    ldp x29, x30, [sp], 16
+    ret
+
+// Subrutina para imprimir el arreglo
+print_array:
+    stp x29, x30, [sp, -16]!    // Guardar registros
+    
+    adrp x19, array             // Cargar dirección del arreglo
+    add x19, x19, :lo12:array
+    adrp x20, arr_len
+    add x20, x20, :lo12:arr_len
+    ldr w20, [x20]              // Cargar longitud
+    mov w21, #0                 // Inicializar contador
+
+print_loop:
+    cmp w21, w20                // Comparar contador con longitud
+    bge print_end               // Si terminamos, salir
+    
+    // Imprimir elemento actual
+    adrp x0, msg_elem
+    add x0, x0, :lo12:msg_elem
+    ldr w1, [x19, w21, UXTW #2] // Cargar elemento actual
+    bl printf
+    
+    add w21, w21, #1            // Incrementar contador
+    b print_loop
+
+print_end:
+    // Imprimir nueva línea
+    adrp x0, msg_nl
+    add x0, x0, :lo12:msg_nl
+    bl printf
+    
+    ldp x29, x30, [sp], 16      // Restaurar registros
+    ret
+---------------------------------------------------------------Codigo en C# de Ordenamiento por selección
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Arreglo de ejemplo
+        int[] array = { 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 };
+
+        // Mostrar el arreglo antes de ordenar
+        Console.WriteLine("Arreglo antes de ordenar:");
+        PrintArray(array);
+
+        // Ordenar el arreglo usando el algoritmo de selección
+        SelectionSort(array);
+
+        // Mostrar el arreglo después de ordenar
+        Console.WriteLine("Arreglo después de ordenar:");
+        PrintArray(array);
+    }
+
+    // Función para imprimir el arreglo
+    static void PrintArray(int[] array)
+    {
+        foreach (int elem in array)
+        {
+            Console.Write($"{elem} ");
+        }
+        Console.WriteLine(); // Nueva línea
+    }
+
+    // Función de ordenamiento por selección
+    static void SelectionSort(int[] array)
+    {
+        int n = array.Length;
+
+        // Bucle externo (repite varias pasadas)
+        for (int i = n - 1; i >= 1; i--)
+        {
+            int maxIndex = i;
+
+            // Bucle interno (compara elementos para encontrar el mayor)
+            for (int j = i - 1; j >= 0; j--)
+            {
+                // Si encontramos un elemento mayor, actualizamos el índice del máximo
+                if (array[j] > array[maxIndex])
+                {
+                    maxIndex = j;
+                }
+            }
+
+            // Si el índice máximo no está en la posición actual, intercambiamos los elementos
+            if (maxIndex != i)
+            {
+                int temp = array[i];
+                array[i] = array[maxIndex];
+                array[maxIndex] = temp;
+            }
+        }
+    }
+}
+
+                                                                18.Ordenamiento por mezcla (Merge Sort)	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:
+ * Dificultad: dificil
+ *---------------------------------------------------------------*/
+.data
+array: .word 12, 45, 7, 23, 67, 89, 34, 56, 90, 14    // Arreglo a ordenar
+arr_len: .word 10                                      // Longitud del arreglo
+temp_array: .zero 40                                   // Arreglo temporal (10 elementos * 4 bytes)
+msg_before: .asciz "Arreglo antes de ordenar:\n"
+msg_after: .asciz "Arreglo después de ordenar:\n"
+msg_elem: .asciz "%d "                                 // Para imprimir cada elemento
+msg_nl: .asciz "\n"                                    // Nueva línea
+
+.text
+.global main
+
+// Función principal
+main:
+    stp x29, x30, [sp, -16]!    // Guardar registros
+    mov x29, sp
+
+    // Imprimir mensaje inicial
+    adrp x0, msg_before
+    add x0, x0, :lo12:msg_before
+    bl printf
+
+    // Imprimir arreglo original
+    bl print_array
+
+    // Preparar parámetros para merge_sort
+    adrp x0, array
+    add x0, x0, :lo12:array     // x0 = dirección del arreglo
+    mov x1, #0                  // x1 = inicio (0)
+    adrp x2, arr_len
+    add x2, x2, :lo12:arr_len
+    ldr w2, [x2]               
+    sub x2, x2, #1              // x2 = fin (n-1)
+
+    // Llamar a merge_sort
+    bl merge_sort
+
+    // Imprimir mensaje final
+    adrp x0, msg_after
+    add x0, x0, :lo12:msg_after
+    bl printf
+
+    // Imprimir arreglo ordenado
+    bl print_array
+
+    // Restaurar y retornar
+    ldp x29, x30, [sp], 16
+    ret
+
+// Función merge_sort(arr, inicio, fin)
+merge_sort:
+    stp x29, x30, [sp, -48]!    // Guardar registros y espacio para variables locales
+    mov x29, sp
+    
+    // Guardar parámetros
+    str x0, [x29, 16]           // Guardar dirección del arreglo
+    str x1, [x29, 24]           // Guardar inicio
+    str x2, [x29, 32]           // Guardar fin
+
+    // Verificar caso base
+    cmp x1, x2                  // Si inicio >= fin, retornar
+    bge merge_sort_end
+
+    // Calcular punto medio
+    add x3, x1, x2              // x3 = inicio + fin
+    lsr x3, x3, #1              // x3 = (inicio + fin) / 2
+
+    // Guardar punto medio
+    str x3, [x29, 40]
+
+    // Llamada recursiva para primera mitad
+    ldr x0, [x29, 16]           // Recuperar dirección del arreglo
+    ldr x1, [x29, 24]           // Recuperar inicio
+    mov x2, x3                  // fin = medio
+    bl merge_sort
+
+    // Llamada recursiva para segunda mitad
+    ldr x0, [x29, 16]           // Recuperar dirección del arreglo
+    ldr x1, [x29, 40]           // inicio = medio
+    add x1, x1, #1              // inicio = medio + 1
+    ldr x2, [x29, 32]           // Recuperar fin
+    bl merge_sort
+
+    // Mezclar las dos mitades
+    ldr x0, [x29, 16]           // Recuperar dirección del arreglo
+    ldr x1, [x29, 24]           // Recuperar inicio
+    ldr x2, [x29, 40]           // Recuperar medio
+    ldr x3, [x29, 32]           // Recuperar fin
+    bl merge
+
+merge_sort_end:
+    ldp x29, x30, [sp], 48
+    ret
+
+// Función merge(arr, inicio, medio, fin)
+merge:
+    stp x29, x30, [sp, -64]!    // Guardar registros y espacio para variables
+    mov x29, sp
+
+    // Guardar parámetros
+    str x0, [x29, 16]           // Dirección del arreglo
+    str x1, [x29, 24]           // Inicio
+    str x2, [x29, 32]           // Medio
+    str x3, [x29, 40]           // Fin
+
+    // Copiar elementos al arreglo temporal
+    mov x4, x1                  // i = inicio
+    adrp x5, temp_array
+    add x5, x5, :lo12:temp_array
+
+copy_loop:
+    cmp x4, x3
+    bgt copy_end
+    ldr w6, [x0, x4, LSL #2]    // Cargar elemento
+    str w6, [x5, x4, LSL #2]    // Guardar en temporal
+    add x4, x4, #1
+    b copy_loop
+
+copy_end:
+    // Inicializar índices
+    mov x4, x1                  // i = inicio
+    add x5, x2, #1              // j = medio + 1
+    mov x6, x1                  // k = inicio
+
+merge_loop:
+    // Verificar si alguna mitad se acabó
+    cmp x4, x2
+    bgt copy_right              // Si i > medio, copiar resto de derecha
+    cmp x5, x3
+    bgt copy_left               // Si j > fin, copiar resto de izquierda
+
+    // Comparar elementos
+    adrp x7, temp_array
+    add x7, x7, :lo12:temp_array
+    ldr w8, [x7, x4, LSL #2]    // Elemento izquierdo
+    ldr w9, [x7, x5, LSL #2]    // Elemento derecho
+    
+    cmp w8, w9
+    ble merge_left              // Si izq <= der, tomar izquierdo
+
+merge_right:
+    // Copiar elemento derecho
+    ldr x0, [x29, 16]           // Recuperar dirección original
+    str w9, [x0, x6, LSL #2]
+    add x5, x5, #1
+    add x6, x6, #1
+    b merge_loop
+
+merge_left:
+    // Copiar elemento izquierdo
+    ldr x0, [x29, 16]           // Recuperar dirección original
+    str w8, [x0, x6, LSL #2]
+    add x4, x4, #1
+    add x6, x6, #1
+    b merge_loop
+
+copy_right:
+    // Copiar resto de la mitad derecha
+    cmp x5, x3
+    bgt merge_end
+    adrp x7, temp_array
+    add x7, x7, :lo12:temp_array
+    ldr w8, [x7, x5, LSL #2]
+    ldr x0, [x29, 16]
+    str w8, [x0, x6, LSL #2]
+    add x5, x5, #1
+    add x6, x6, #1
+    b copy_right
+
+copy_left:
+    // Copiar resto de la mitad izquierda
+    cmp x4, x2
+    bgt merge_end
+    adrp x7, temp_array
+    add x7, x7, :lo12:temp_array
+    ldr w8, [x7, x4, LSL #2]
+    ldr x0, [x29, 16]
+    str w8, [x0, x6, LSL #2]
+    add x4, x4, #1
+    add x6, x6, #1
+    b copy_left
+
+merge_end:
+    ldp x29, x30, [sp], 64
+    ret
+
+// Subrutina para imprimir el arreglo (igual que en el código de referencia)
+print_array:
+    stp x29, x30, [sp, -16]!
+    adrp x19, array
+    add x19, x19, :lo12:array
+    adrp x20, arr_len
+    add x20, x20, :lo12:arr_len
+    ldr w20, [x20]
+    mov w21, #0
+
+print_loop:
+    cmp w21, w20
+    bge print_end
+    adrp x0, msg_elem
+    add x0, x0, :lo12:msg_elem
+    ldr w1, [x19, w21, UXTW #2]
+    bl printf
+    add w21, w21, #1
+    b print_loop
+
+print_end:
+    adrp x0, msg_nl
+    add x0, x0, :lo12:msg_nl
+    bl printf
+    ldp x29, x30, [sp], 16
+    ret
+---------------------------------------------------------------Codigo en C# de Ordenamiento por mezcla (Merge Sort)	
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Arreglo de ejemplo
+        int[] array = { 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 };
+
+        // Mostrar el arreglo antes de ordenar
+        Console.WriteLine("Arreglo antes de ordenar:");
+        PrintArray(array);
+
+        // Ordenar el arreglo usando Merge Sort
+        MergeSort(array, 0, array.Length - 1);
+
+        // Mostrar el arreglo después de ordenar
+        Console.WriteLine("Arreglo después de ordenar:");
+        PrintArray(array);
+    }
+
+    // Función para imprimir el arreglo
+    static void PrintArray(int[] array)
+    {
+        foreach (int elem in array)
+        {
+            Console.Write($"{elem} ");
+        }
+        Console.WriteLine(); // Nueva línea
+    }
+
+    // Función de ordenamiento Merge Sort
+    static void MergeSort(int[] array, int start, int end)
+    {
+        if (start >= end)
+            return;
+
+        // Calcular el punto medio
+        int mid = (start + end) / 2;
+
+        // Llamada recursiva para la primera mitad
+        MergeSort(array, start, mid);
+
+        // Llamada recursiva para la segunda mitad
+        MergeSort(array, mid + 1, end);
+
+        // Mezclar las dos mitades
+        Merge(array, start, mid, end);
+    }
+
+    // Función para combinar (mezclar) dos mitades ordenadas
+    static void Merge(int[] array, int start, int mid, int end)
+    {
+        int leftSize = mid - start + 1;
+        int rightSize = end - mid;
+
+        // Crear arreglos temporales
+        int[] left = new int[leftSize];
+        int[] right = new int[rightSize];
+
+        // Copiar los datos a los arreglos temporales
+        Array.Copy(array, start, left, 0, leftSize);
+        Array.Copy(array, mid + 1, right, 0, rightSize);
+
+        int i = 0, j = 0, k = start;
+
+        // Mezclar los arreglos temporales
+        while (i < leftSize && j < rightSize)
+        {
+            if (left[i] <= right[j])
+            {
+                array[k] = left[i];
+                i++;
+            }
+            else
+            {
+                array[k] = right[j];
+                j++;
+            }
+            k++;
+        }
+
+        // Copiar los elementos restantes si hay alguno
+        while (i < leftSize)
+        {
+            array[k] = left[i];
+            i++;
+            k++;
+        }
+
+        while (j < rightSize)
+        {
+            array[k] = right[j];
+            j++;
+            k++;
+        }
+    }
+}
+
+                                                                19.Suma de matrices	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+ .data
+// Dimensiones de las matrices (3x3)
+N: .word 3          // Filas
+M: .word 3          // Columnas
+
+// Matrices
+matrix1: .zero 36    // 3x3 matriz (4 bytes por elemento)
+matrix2: .zero 36    // 3x3 matriz
+result: .zero 36     // Matriz resultado
+
+// Mensajes y formatos
+msg_matrix1: .asciz "\nIngrese los elementos de la primera matriz 3x3:\n"
+msg_matrix2: .asciz "\nIngrese los elementos de la segunda matriz 3x3:\n"
+msg_element: .asciz "Ingrese elemento [%d][%d]: "
+msg_result: .asciz "\nMatriz resultado:\n"
+fmt_input: .asciz "%d"
+fmt_output: .asciz "%4d "
+new_line: .asciz "\n"
+
+.text
+.global main
+
+main:
+    // Prólogo
+    stp x29, x30, [sp, -16]!
+    mov x29, sp
+
+    // Anunciar entrada de primera matriz
+    adrp x0, msg_matrix1
+    add x0, x0, :lo12:msg_matrix1
+    bl printf
+
+    // Leer primera matriz
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    mov x19, #0          // i = 0
+
+loop1_i:
+    cmp x19, #3
+    beq end_loop1_i
+    mov x21, #0          // j = 0
+
+loop1_j:
+    cmp x21, #3
+    beq end_loop1_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16      // Espacio para el input
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4 (tamaño de fila)
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix1[i][j]
+    add sp, sp, #16      // restaurar sp
+
+    add x21, x21, #1     // j++
+    b loop1_j
+
+end_loop1_j:
+    add x19, x19, #1     // i++
+    b loop1_i
+
+end_loop1_i:
+    // Anunciar entrada de segunda matriz
+    adrp x0, msg_matrix2
+    add x0, x0, :lo12:msg_matrix2
+    bl printf
+
+    // Leer segunda matriz
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    mov x19, #0          // i = 0
+
+loop2_i:
+    cmp x19, #3
+    beq end_loop2_i
+    mov x21, #0          // j = 0
+
+loop2_j:
+    cmp x21, #3
+    beq end_loop2_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix2[i][j]
+    add sp, sp, #16
+
+    add x21, x21, #1     // j++
+    b loop2_j
+
+end_loop2_j:
+    add x19, x19, #1     // i++
+    b loop2_i
+
+end_loop2_i:
+    // Realizar la suma
+    mov x19, #0          // i = 0
+
+sum_loop_i:
+    cmp x19, #3
+    beq end_sum_loop_i
+    mov x21, #0          // j = 0
+
+sum_loop_j:
+    cmp x21, #3
+    beq end_sum_loop_j
+
+    // Calcular offset
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+
+    // Cargar elementos y sumar
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    ldr w24, [x20, x23]  // matrix1[i][j]
+
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    ldr w25, [x20, x23]  // matrix2[i][j]
+
+    add w24, w24, w25    // suma
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    str w24, [x20, x23]  // guardar resultado
+
+    add x21, x21, #1     // j++
+    b sum_loop_j
+
+end_sum_loop_j:
+    add x19, x19, #1     // i++
+    b sum_loop_i
+
+end_sum_loop_i:
+    // Mostrar resultado
+    adrp x0, msg_result
+    add x0, x0, :lo12:msg_result
+    bl printf
+
+    // Imprimir matriz resultado
+    mov x19, #0          // i = 0
+
+print_loop_i:
+    cmp x19, #3
+    beq end_print_loop_i
+    mov x21, #0          // j = 0
+
+print_loop_j:
+    cmp x21, #3
+    beq end_print_loop_j
+
+    // Calcular offset y cargar elemento
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    ldr w1, [x20, x23]   // cargar resultado[i][j]
+
+    // Imprimir elemento
+    adrp x0, fmt_output
+    add x0, x0, :lo12:fmt_output
+    bl printf
+
+    add x21, x21, #1     // j++
+    b print_loop_j
+
+end_print_loop_j:
+    // Nueva línea al final de cada fila
+    adrp x0, new_line
+    add x0, x0, :lo12:new_line
+    bl printf
+
+    add x19, x19, #1     // i++
+    b print_loop_i
+
+end_print_loop_i:
+    // Epílogo
+    ldp x29, x30, [sp], 16
+    ret
+--------------------------------------------------------------Codigo en C# de Suma de matrices
+using System;
+
+class MatrixOperations
+{
+    const int N = 3; // Filas
+    const int M = 3; // Columnas
+
+    static void Main()
+    {
+        // Matrices
+        int[,] matrix1 = new int[N, M];
+        int[,] matrix2 = new int[N, M];
+        int[,] result = new int[N, M];
+
+        // Leer primera matriz
+        Console.WriteLine("\nIngrese los elementos de la primera matriz 3x3:");
+        ReadMatrix(matrix1);
+
+        // Leer segunda matriz
+        Console.WriteLine("\nIngrese los elementos de la segunda matriz 3x3:");
+        ReadMatrix(matrix2);
+
+        // Realizar la suma
+        AddMatrices(matrix1, matrix2, result);
+
+        // Mostrar resultado
+        Console.WriteLine("\nMatriz resultado:");
+        PrintMatrix(result);
+    }
+
+    // Función para leer la matriz
+    static void ReadMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"Ingrese elemento [{i}][{j}]: ");
+                matrix[i, j] = int.Parse(Console.ReadLine());
+            }
+        }
+    }
+
+    // Función para sumar las matrices
+    static void AddMatrices(int[,] matrix1, int[,] matrix2, int[,] result)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                result[i, j] = matrix1[i, j] + matrix2[i, j];
+            }
+        }
+    }
+
+    // Función para imprimir la matriz
+    static void PrintMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"{matrix[i, j],4} ");
+            }
+            Console.WriteLine();
+        }
+    }
+}
+
+                                                                20.Multiplicación de matrices	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción:
+ * Dificultad: dificil
+ *---------------------------------------------------------------*/
+ .data
+// Dimensiones de las matrices (3x3)
+N: .word 3          // Filas
+M: .word 3          // Columnas
+
+// Matrices
+matrix1: .zero 36    // 3x3 matriz (4 bytes por elemento)
+matrix2: .zero 36    // 3x3 matriz
+result: .zero 36     // Matriz resultado
+
+// Mensajes y formatos
+msg_matrix1: .asciz "\nIngrese los elementos de la primera matriz 3x3:\n"
+msg_matrix2: .asciz "\nIngrese los elementos de la segunda matriz 3x3:\n"
+msg_element: .asciz "Ingrese elemento [%d][%d]: "
+msg_result: .asciz "\nMatriz resultado:\n"
+fmt_input: .asciz "%d"
+fmt_output: .asciz "%4d "
+new_line: .asciz "\n"
+
+.text
+.global main
+
+main:
+    // Prólogo
+    stp x29, x30, [sp, -16]!
+    mov x29, sp
+
+    // Anunciar entrada de primera matriz
+    adrp x0, msg_matrix1
+    add x0, x0, :lo12:msg_matrix1
+    bl printf
+
+    // Leer primera matriz
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    mov x19, #0          // i = 0
+
+loop1_i:
+    cmp x19, #3
+    beq end_loop1_i
+    mov x21, #0          // j = 0
+
+loop1_j:
+    cmp x21, #3
+    beq end_loop1_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4 (tamaño de fila)
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix1[i][j]
+    add sp, sp, #16
+
+    add x21, x21, #1     // j++
+    b loop1_j
+
+end_loop1_j:
+    add x19, x19, #1     // i++
+    b loop1_i
+
+end_loop1_i:
+    // Anunciar entrada de segunda matriz
+    adrp x0, msg_matrix2
+    add x0, x0, :lo12:msg_matrix2
+    bl printf
+
+    // Leer segunda matriz
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    mov x19, #0          // i = 0
+
+loop2_i:
+    cmp x19, #3
+    beq end_loop2_i
+    mov x21, #0          // j = 0
+
+loop2_j:
+    cmp x21, #3
+    beq end_loop2_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix2[i][j]
+    add sp, sp, #16
+
+    add x21, x21, #1     // j++
+    b loop2_j
+
+end_loop2_j:
+    add x19, x19, #1     // i++
+    b loop2_i
+
+end_loop2_i:
+    // Realizar la multiplicación
+    mov x19, #0          // i = 0
+
+mult_loop_i:
+    cmp x19, #3
+    beq end_mult_loop_i
+    mov x21, #0          // j = 0
+
+mult_loop_j:
+    cmp x21, #3
+    beq end_mult_loop_j
+    
+    // Inicializar el acumulador para el elemento resultado[i][j]
+    mov w26, #0          // sum = 0
+    mov x22, #0          // k = 0
+
+mult_loop_k:
+    cmp x22, #3
+    beq end_mult_loop_k
+
+    // Calcular offset para matrix1[i][k]
+    mov x23, #12         // 3 * 4
+    mul x24, x19, x23    // i * (3 * 4)
+    mov x25, #4
+    mul x27, x22, x25    // k * 4
+    add x24, x24, x27    // offset para matrix1[i][k]
+
+    // Calcular offset para matrix2[k][j]
+    mul x25, x22, x23    // k * (3 * 4)
+    mov x27, #4
+    mul x28, x21, x27    // j * 4
+    add x25, x25, x28    // offset para matrix2[k][j]
+
+    // Cargar elementos y multiplicar
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    ldr w27, [x20, x24]  // matrix1[i][k]
+
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    ldr w28, [x20, x25]  // matrix2[k][j]
+
+    // Multiplicar y acumular
+    mul w27, w27, w28
+    add w26, w26, w27    // sum += matrix1[i][k] * matrix2[k][j]
+
+    add x22, x22, #1     // k++
+    b mult_loop_k
+
+end_mult_loop_k:
+    // Guardar resultado
+    mov x23, #12         // 3 * 4
+    mul x24, x19, x23    // i * (3 * 4)
+    mov x25, #4
+    mul x27, x21, x25    // j * 4
+    add x24, x24, x27    // offset total
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    str w26, [x20, x24]  // guardar sum en result[i][j]
+
+    add x21, x21, #1     // j++
+    b mult_loop_j
+
+end_mult_loop_j:
+    add x19, x19, #1     // i++
+    b mult_loop_i
+
+end_mult_loop_i:
+    // Mostrar resultado
+    adrp x0, msg_result
+    add x0, x0, :lo12:msg_result
+    bl printf
+
+    // Imprimir matriz resultado
+    mov x19, #0          // i = 0
+
+print_loop_i:
+    cmp x19, #3
+    beq end_print_loop_i
+    mov x21, #0          // j = 0
+
+print_loop_j:
+    cmp x21, #3
+    beq end_print_loop_j
+
+    // Calcular offset y cargar elemento
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    ldr w1, [x20, x23]   // cargar resultado[i][j]
+
+    // Imprimir elemento
+    adrp x0, fmt_output
+    add x0, x0, :lo12:fmt_output
+    bl printf
+
+    add x21, x21, #1     // j++
+    b print_loop_j
+
+end_print_loop_j:
+    // Nueva línea al final de cada fila
+    adrp x0, new_line
+    add x0, x0, :lo12:new_line
+    bl printf
+
+    add x19, x19, #1     // i++
+    b print_loop_i
+
+end_print_loop_i:
+    // Epílogo
+    ldp x29, x30, [sp], 16
+    ret
+---------------------------------------------------------------Codigo en C# de Multiplicación de matrices
+using System;
+
+class MatrixOperations
+{
+    const int N = 3; // Filas
+    const int M = 3; // Columnas
+
+    static void Main()
+    {
+        // Matrices
+        int[,] matrix1 = new int[N, M];
+        int[,] matrix2 = new int[N, M];
+        int[,] result = new int[N, M];
+
+        // Leer primera matriz
+        Console.WriteLine("\nIngrese los elementos de la primera matriz 3x3:");
+        ReadMatrix(matrix1);
+
+        // Leer segunda matriz
+        Console.WriteLine("\nIngrese los elementos de la segunda matriz 3x3:");
+        ReadMatrix(matrix2);
+
+        // Realizar la multiplicación
+        MultiplyMatrices(matrix1, matrix2, result);
+
+        // Mostrar resultado
+        Console.WriteLine("\nMatriz resultado:");
+        PrintMatrix(result);
+    }
+
+    // Función para leer la matriz
+    static void ReadMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"Ingrese elemento [{i}][{j}]: ");
+                matrix[i, j] = int.Parse(Console.ReadLine());
+            }
+        }
+    }
+
+    // Función para multiplicar las matrices
+    static void MultiplyMatrices(int[,] matrix1, int[,] matrix2, int[,] result)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                result[i, j] = 0; // Inicializar el elemento resultante
+                for (int k = 0; k < M; k++)
+                {
+                    result[i, j] += matrix1[i, k] * matrix2[k, j]; // Multiplicación y acumulación
+                }
+            }
+        }
+    }
+
+    // Función para imprimir la matriz
+    static void PrintMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"{matrix[i, j],4} ");
+            }
+            Console.WriteLine();
+        }
+    }
+}
