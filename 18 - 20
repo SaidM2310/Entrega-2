@@ -1,0 +1,943 @@
+                                                                18.Ordenamiento por mezcla (Merge Sort)	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción: ordenamiento por mezcla
+ * Dificultad: dificil
+ *---------------------------------------------------------------*/
+.data
+array: .word 12, 45, 7, 23, 67, 89, 34, 56, 90, 14    // Arreglo a ordenar
+arr_len: .word 10                                      // Longitud del arreglo
+temp_array: .zero 40                                   // Arreglo temporal (10 elementos * 4 bytes)
+msg_before: .asciz "Arreglo antes de ordenar:\n"
+msg_after: .asciz "Arreglo después de ordenar:\n"
+msg_elem: .asciz "%d "                                 // Para imprimir cada elemento
+msg_nl: .asciz "\n"                                    // Nueva línea
+
+.text
+.global main
+
+// Función principal
+main:
+    stp x29, x30, [sp, -16]!    // Guardar registros
+    mov x29, sp
+
+    // Imprimir mensaje inicial
+    adrp x0, msg_before
+    add x0, x0, :lo12:msg_before
+    bl printf
+
+    // Imprimir arreglo original
+    bl print_array
+
+    // Preparar parámetros para merge_sort
+    adrp x0, array
+    add x0, x0, :lo12:array     // x0 = dirección del arreglo
+    mov x1, #0                  // x1 = inicio (0)
+    adrp x2, arr_len
+    add x2, x2, :lo12:arr_len
+    ldr w2, [x2]               
+    sub x2, x2, #1              // x2 = fin (n-1)
+
+    // Llamar a merge_sort
+    bl merge_sort
+
+    // Imprimir mensaje final
+    adrp x0, msg_after
+    add x0, x0, :lo12:msg_after
+    bl printf
+
+    // Imprimir arreglo ordenado
+    bl print_array
+
+    // Restaurar y retornar
+    ldp x29, x30, [sp], 16
+    ret
+
+// Función merge_sort(arr, inicio, fin)
+merge_sort:
+    stp x29, x30, [sp, -48]!    // Guardar registros y espacio para variables locales
+    mov x29, sp
+    
+    // Guardar parámetros
+    str x0, [x29, 16]           // Guardar dirección del arreglo
+    str x1, [x29, 24]           // Guardar inicio
+    str x2, [x29, 32]           // Guardar fin
+
+    // Verificar caso base
+    cmp x1, x2                  // Si inicio >= fin, retornar
+    bge merge_sort_end
+
+    // Calcular punto medio
+    add x3, x1, x2              // x3 = inicio + fin
+    lsr x3, x3, #1              // x3 = (inicio + fin) / 2
+
+    // Guardar punto medio
+    str x3, [x29, 40]
+
+    // Llamada recursiva para primera mitad
+    ldr x0, [x29, 16]           // Recuperar dirección del arreglo
+    ldr x1, [x29, 24]           // Recuperar inicio
+    mov x2, x3                  // fin = medio
+    bl merge_sort
+
+    // Llamada recursiva para segunda mitad
+    ldr x0, [x29, 16]           // Recuperar dirección del arreglo
+    ldr x1, [x29, 40]           // inicio = medio
+    add x1, x1, #1              // inicio = medio + 1
+    ldr x2, [x29, 32]           // Recuperar fin
+    bl merge_sort
+
+    // Mezclar las dos mitades
+    ldr x0, [x29, 16]           // Recuperar dirección del arreglo
+    ldr x1, [x29, 24]           // Recuperar inicio
+    ldr x2, [x29, 40]           // Recuperar medio
+    ldr x3, [x29, 32]           // Recuperar fin
+    bl merge
+
+merge_sort_end:
+    ldp x29, x30, [sp], 48
+    ret
+
+// Función merge(arr, inicio, medio, fin)
+merge:
+    stp x29, x30, [sp, -64]!    // Guardar registros y espacio para variables
+    mov x29, sp
+
+    // Guardar parámetros
+    str x0, [x29, 16]           // Dirección del arreglo
+    str x1, [x29, 24]           // Inicio
+    str x2, [x29, 32]           // Medio
+    str x3, [x29, 40]           // Fin
+
+    // Copiar elementos al arreglo temporal
+    mov x4, x1                  // i = inicio
+    adrp x5, temp_array
+    add x5, x5, :lo12:temp_array
+
+copy_loop:
+    cmp x4, x3
+    bgt copy_end
+    ldr w6, [x0, x4, LSL #2]    // Cargar elemento
+    str w6, [x5, x4, LSL #2]    // Guardar en temporal
+    add x4, x4, #1
+    b copy_loop
+
+copy_end:
+    // Inicializar índices
+    mov x4, x1                  // i = inicio
+    add x5, x2, #1              // j = medio + 1
+    mov x6, x1                  // k = inicio
+
+merge_loop:
+    // Verificar si alguna mitad se acabó
+    cmp x4, x2
+    bgt copy_right              // Si i > medio, copiar resto de derecha
+    cmp x5, x3
+    bgt copy_left               // Si j > fin, copiar resto de izquierda
+
+    // Comparar elementos
+    adrp x7, temp_array
+    add x7, x7, :lo12:temp_array
+    ldr w8, [x7, x4, LSL #2]    // Elemento izquierdo
+    ldr w9, [x7, x5, LSL #2]    // Elemento derecho
+    
+    cmp w8, w9
+    ble merge_left              // Si izq <= der, tomar izquierdo
+
+merge_right:
+    // Copiar elemento derecho
+    ldr x0, [x29, 16]           // Recuperar dirección original
+    str w9, [x0, x6, LSL #2]
+    add x5, x5, #1
+    add x6, x6, #1
+    b merge_loop
+
+merge_left:
+    // Copiar elemento izquierdo
+    ldr x0, [x29, 16]           // Recuperar dirección original
+    str w8, [x0, x6, LSL #2]
+    add x4, x4, #1
+    add x6, x6, #1
+    b merge_loop
+
+copy_right:
+    // Copiar resto de la mitad derecha
+    cmp x5, x3
+    bgt merge_end
+    adrp x7, temp_array
+    add x7, x7, :lo12:temp_array
+    ldr w8, [x7, x5, LSL #2]
+    ldr x0, [x29, 16]
+    str w8, [x0, x6, LSL #2]
+    add x5, x5, #1
+    add x6, x6, #1
+    b copy_right
+
+copy_left:
+    // Copiar resto de la mitad izquierda
+    cmp x4, x2
+    bgt merge_end
+    adrp x7, temp_array
+    add x7, x7, :lo12:temp_array
+    ldr w8, [x7, x4, LSL #2]
+    ldr x0, [x29, 16]
+    str w8, [x0, x6, LSL #2]
+    add x4, x4, #1
+    add x6, x6, #1
+    b copy_left
+
+merge_end:
+    ldp x29, x30, [sp], 64
+    ret
+
+// Subrutina para imprimir el arreglo (igual que en el código de referencia)
+print_array:
+    stp x29, x30, [sp, -16]!
+    adrp x19, array
+    add x19, x19, :lo12:array
+    adrp x20, arr_len
+    add x20, x20, :lo12:arr_len
+    ldr w20, [x20]
+    mov w21, #0
+
+print_loop:
+    cmp w21, w20
+    bge print_end
+    adrp x0, msg_elem
+    add x0, x0, :lo12:msg_elem
+    ldr w1, [x19, w21, UXTW #2]
+    bl printf
+    add w21, w21, #1
+    b print_loop
+
+print_end:
+    adrp x0, msg_nl
+    add x0, x0, :lo12:msg_nl
+    bl printf
+    ldp x29, x30, [sp], 16
+    ret
+---------------------------------------------------------------Codigo en C# de Ordenamiento por mezcla (Merge Sort)	
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Arreglo de ejemplo
+        int[] array = { 12, 45, 7, 23, 67, 89, 34, 56, 90, 14 };
+
+        // Mostrar el arreglo antes de ordenar
+        Console.WriteLine("Arreglo antes de ordenar:");
+        PrintArray(array);
+
+        // Ordenar el arreglo usando Merge Sort
+        MergeSort(array, 0, array.Length - 1);
+
+        // Mostrar el arreglo después de ordenar
+        Console.WriteLine("Arreglo después de ordenar:");
+        PrintArray(array);
+    }
+
+    // Función para imprimir el arreglo
+    static void PrintArray(int[] array)
+    {
+        foreach (int elem in array)
+        {
+            Console.Write($"{elem} ");
+        }
+        Console.WriteLine(); // Nueva línea
+    }
+
+    // Función de ordenamiento Merge Sort
+    static void MergeSort(int[] array, int start, int end)
+    {
+        if (start >= end)
+            return;
+
+        // Calcular el punto medio
+        int mid = (start + end) / 2;
+
+        // Llamada recursiva para la primera mitad
+        MergeSort(array, start, mid);
+
+        // Llamada recursiva para la segunda mitad
+        MergeSort(array, mid + 1, end);
+
+        // Mezclar las dos mitades
+        Merge(array, start, mid, end);
+    }
+
+    // Función para combinar (mezclar) dos mitades ordenadas
+    static void Merge(int[] array, int start, int mid, int end)
+    {
+        int leftSize = mid - start + 1;
+        int rightSize = end - mid;
+
+        // Crear arreglos temporales
+        int[] left = new int[leftSize];
+        int[] right = new int[rightSize];
+
+        // Copiar los datos a los arreglos temporales
+        Array.Copy(array, start, left, 0, leftSize);
+        Array.Copy(array, mid + 1, right, 0, rightSize);
+
+        int i = 0, j = 0, k = start;
+
+        // Mezclar los arreglos temporales
+        while (i < leftSize && j < rightSize)
+        {
+            if (left[i] <= right[j])
+            {
+                array[k] = left[i];
+                i++;
+            }
+            else
+            {
+                array[k] = right[j];
+                j++;
+            }
+            k++;
+        }
+
+        // Copiar los elementos restantes si hay alguno
+        while (i < leftSize)
+        {
+            array[k] = left[i];
+            i++;
+            k++;
+        }
+
+        while (j < rightSize)
+        {
+            array[k] = right[j];
+            j++;
+            k++;
+        }
+    }
+}
+
+                                                                19.Suma de matrices	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción: suma de matrices
+ * Dificultad: intermedio
+ *---------------------------------------------------------------*/
+ .data
+// Dimensiones de las matrices (3x3)
+N: .word 3          // Filas
+M: .word 3          // Columnas
+
+// Matrices
+matrix1: .zero 36    // 3x3 matriz (4 bytes por elemento)
+matrix2: .zero 36    // 3x3 matriz
+result: .zero 36     // Matriz resultado
+
+// Mensajes y formatos
+msg_matrix1: .asciz "\nIngrese los elementos de la primera matriz 3x3:\n"
+msg_matrix2: .asciz "\nIngrese los elementos de la segunda matriz 3x3:\n"
+msg_element: .asciz "Ingrese elemento [%d][%d]: "
+msg_result: .asciz "\nMatriz resultado:\n"
+fmt_input: .asciz "%d"
+fmt_output: .asciz "%4d "
+new_line: .asciz "\n"
+
+.text
+.global main
+
+main:
+    // Prólogo
+    stp x29, x30, [sp, -16]!
+    mov x29, sp
+
+    // Anunciar entrada de primera matriz
+    adrp x0, msg_matrix1
+    add x0, x0, :lo12:msg_matrix1
+    bl printf
+
+    // Leer primera matriz
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    mov x19, #0          // i = 0
+
+loop1_i:
+    cmp x19, #3
+    beq end_loop1_i
+    mov x21, #0          // j = 0
+
+loop1_j:
+    cmp x21, #3
+    beq end_loop1_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16      // Espacio para el input
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4 (tamaño de fila)
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix1[i][j]
+    add sp, sp, #16      // restaurar sp
+
+    add x21, x21, #1     // j++
+    b loop1_j
+
+end_loop1_j:
+    add x19, x19, #1     // i++
+    b loop1_i
+
+end_loop1_i:
+    // Anunciar entrada de segunda matriz
+    adrp x0, msg_matrix2
+    add x0, x0, :lo12:msg_matrix2
+    bl printf
+
+    // Leer segunda matriz
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    mov x19, #0          // i = 0
+
+loop2_i:
+    cmp x19, #3
+    beq end_loop2_i
+    mov x21, #0          // j = 0
+
+loop2_j:
+    cmp x21, #3
+    beq end_loop2_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix2[i][j]
+    add sp, sp, #16
+
+    add x21, x21, #1     // j++
+    b loop2_j
+
+end_loop2_j:
+    add x19, x19, #1     // i++
+    b loop2_i
+
+end_loop2_i:
+    // Realizar la suma
+    mov x19, #0          // i = 0
+
+sum_loop_i:
+    cmp x19, #3
+    beq end_sum_loop_i
+    mov x21, #0          // j = 0
+
+sum_loop_j:
+    cmp x21, #3
+    beq end_sum_loop_j
+
+    // Calcular offset
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+
+    // Cargar elementos y sumar
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    ldr w24, [x20, x23]  // matrix1[i][j]
+
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    ldr w25, [x20, x23]  // matrix2[i][j]
+
+    add w24, w24, w25    // suma
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    str w24, [x20, x23]  // guardar resultado
+
+    add x21, x21, #1     // j++
+    b sum_loop_j
+
+end_sum_loop_j:
+    add x19, x19, #1     // i++
+    b sum_loop_i
+
+end_sum_loop_i:
+    // Mostrar resultado
+    adrp x0, msg_result
+    add x0, x0, :lo12:msg_result
+    bl printf
+
+    // Imprimir matriz resultado
+    mov x19, #0          // i = 0
+
+print_loop_i:
+    cmp x19, #3
+    beq end_print_loop_i
+    mov x21, #0          // j = 0
+
+print_loop_j:
+    cmp x21, #3
+    beq end_print_loop_j
+
+    // Calcular offset y cargar elemento
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    ldr w1, [x20, x23]   // cargar resultado[i][j]
+
+    // Imprimir elemento
+    adrp x0, fmt_output
+    add x0, x0, :lo12:fmt_output
+    bl printf
+
+    add x21, x21, #1     // j++
+    b print_loop_j
+
+end_print_loop_j:
+    // Nueva línea al final de cada fila
+    adrp x0, new_line
+    add x0, x0, :lo12:new_line
+    bl printf
+
+    add x19, x19, #1     // i++
+    b print_loop_i
+
+end_print_loop_i:
+    // Epílogo
+    ldp x29, x30, [sp], 16
+    ret
+--------------------------------------------------------------Codigo en C# de Suma de matrices
+using System;
+
+class MatrixOperations
+{
+    const int N = 3; // Filas
+    const int M = 3; // Columnas
+
+    static void Main()
+    {
+        // Matrices
+        int[,] matrix1 = new int[N, M];
+        int[,] matrix2 = new int[N, M];
+        int[,] result = new int[N, M];
+
+        // Leer primera matriz
+        Console.WriteLine("\nIngrese los elementos de la primera matriz 3x3:");
+        ReadMatrix(matrix1);
+
+        // Leer segunda matriz
+        Console.WriteLine("\nIngrese los elementos de la segunda matriz 3x3:");
+        ReadMatrix(matrix2);
+
+        // Realizar la suma
+        AddMatrices(matrix1, matrix2, result);
+
+        // Mostrar resultado
+        Console.WriteLine("\nMatriz resultado:");
+        PrintMatrix(result);
+    }
+
+    // Función para leer la matriz
+    static void ReadMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"Ingrese elemento [{i}][{j}]: ");
+                matrix[i, j] = int.Parse(Console.ReadLine());
+            }
+        }
+    }
+
+    // Función para sumar las matrices
+    static void AddMatrices(int[,] matrix1, int[,] matrix2, int[,] result)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                result[i, j] = matrix1[i, j] + matrix2[i, j];
+            }
+        }
+    }
+
+    // Función para imprimir la matriz
+    static void PrintMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"{matrix[i, j],4} ");
+            }
+            Console.WriteLine();
+        }
+    }
+}
+
+                                                                20.Multiplicación de matrices	
+/*---------------------------------------------------------------
+ * Autor: Eric Said Mora Lopez
+ * Fecha: 11/11/24
+ * Descripción: multiplicacion de matrices
+ * Dificultad: dificil
+ *---------------------------------------------------------------*/
+ .data
+// Dimensiones de las matrices (3x3)
+N: .word 3          // Filas
+M: .word 3          // Columnas
+
+// Matrices
+matrix1: .zero 36    // 3x3 matriz (4 bytes por elemento)
+matrix2: .zero 36    // 3x3 matriz
+result: .zero 36     // Matriz resultado
+
+// Mensajes y formatos
+msg_matrix1: .asciz "\nIngrese los elementos de la primera matriz 3x3:\n"
+msg_matrix2: .asciz "\nIngrese los elementos de la segunda matriz 3x3:\n"
+msg_element: .asciz "Ingrese elemento [%d][%d]: "
+msg_result: .asciz "\nMatriz resultado:\n"
+fmt_input: .asciz "%d"
+fmt_output: .asciz "%4d "
+new_line: .asciz "\n"
+
+.text
+.global main
+
+main:
+    // Prólogo
+    stp x29, x30, [sp, -16]!
+    mov x29, sp
+
+    // Anunciar entrada de primera matriz
+    adrp x0, msg_matrix1
+    add x0, x0, :lo12:msg_matrix1
+    bl printf
+
+    // Leer primera matriz
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    mov x19, #0          // i = 0
+
+loop1_i:
+    cmp x19, #3
+    beq end_loop1_i
+    mov x21, #0          // j = 0
+
+loop1_j:
+    cmp x21, #3
+    beq end_loop1_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4 (tamaño de fila)
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix1[i][j]
+    add sp, sp, #16
+
+    add x21, x21, #1     // j++
+    b loop1_j
+
+end_loop1_j:
+    add x19, x19, #1     // i++
+    b loop1_i
+
+end_loop1_i:
+    // Anunciar entrada de segunda matriz
+    adrp x0, msg_matrix2
+    add x0, x0, :lo12:msg_matrix2
+    bl printf
+
+    // Leer segunda matriz
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    mov x19, #0          // i = 0
+
+loop2_i:
+    cmp x19, #3
+    beq end_loop2_i
+    mov x21, #0          // j = 0
+
+loop2_j:
+    cmp x21, #3
+    beq end_loop2_j
+
+    // Mostrar prompt
+    adrp x0, msg_element
+    add x0, x0, :lo12:msg_element
+    mov x1, x19
+    mov x2, x21
+    bl printf
+
+    // Leer elemento
+    sub sp, sp, #16
+    mov x1, sp
+    adrp x0, fmt_input
+    add x0, x0, :lo12:fmt_input
+    bl scanf
+
+    // Calcular posición y guardar
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+    ldr w24, [sp]
+    str w24, [x20, x23]  // guardar en matrix2[i][j]
+    add sp, sp, #16
+
+    add x21, x21, #1     // j++
+    b loop2_j
+
+end_loop2_j:
+    add x19, x19, #1     // i++
+    b loop2_i
+
+end_loop2_i:
+    // Realizar la multiplicación
+    mov x19, #0          // i = 0
+
+mult_loop_i:
+    cmp x19, #3
+    beq end_mult_loop_i
+    mov x21, #0          // j = 0
+
+mult_loop_j:
+    cmp x21, #3
+    beq end_mult_loop_j
+    
+    // Inicializar el acumulador para el elemento resultado[i][j]
+    mov w26, #0          // sum = 0
+    mov x22, #0          // k = 0
+
+mult_loop_k:
+    cmp x22, #3
+    beq end_mult_loop_k
+
+    // Calcular offset para matrix1[i][k]
+    mov x23, #12         // 3 * 4
+    mul x24, x19, x23    // i * (3 * 4)
+    mov x25, #4
+    mul x27, x22, x25    // k * 4
+    add x24, x24, x27    // offset para matrix1[i][k]
+
+    // Calcular offset para matrix2[k][j]
+    mul x25, x22, x23    // k * (3 * 4)
+    mov x27, #4
+    mul x28, x21, x27    // j * 4
+    add x25, x25, x28    // offset para matrix2[k][j]
+
+    // Cargar elementos y multiplicar
+    adrp x20, matrix1
+    add x20, x20, :lo12:matrix1
+    ldr w27, [x20, x24]  // matrix1[i][k]
+
+    adrp x20, matrix2
+    add x20, x20, :lo12:matrix2
+    ldr w28, [x20, x25]  // matrix2[k][j]
+
+    // Multiplicar y acumular
+    mul w27, w27, w28
+    add w26, w26, w27    // sum += matrix1[i][k] * matrix2[k][j]
+
+    add x22, x22, #1     // k++
+    b mult_loop_k
+
+end_mult_loop_k:
+    // Guardar resultado
+    mov x23, #12         // 3 * 4
+    mul x24, x19, x23    // i * (3 * 4)
+    mov x25, #4
+    mul x27, x21, x25    // j * 4
+    add x24, x24, x27    // offset total
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    str w26, [x20, x24]  // guardar sum en result[i][j]
+
+    add x21, x21, #1     // j++
+    b mult_loop_j
+
+end_mult_loop_j:
+    add x19, x19, #1     // i++
+    b mult_loop_i
+
+end_mult_loop_i:
+    // Mostrar resultado
+    adrp x0, msg_result
+    add x0, x0, :lo12:msg_result
+    bl printf
+
+    // Imprimir matriz resultado
+    mov x19, #0          // i = 0
+
+print_loop_i:
+    cmp x19, #3
+    beq end_print_loop_i
+    mov x21, #0          // j = 0
+
+print_loop_j:
+    cmp x21, #3
+    beq end_print_loop_j
+
+    // Calcular offset y cargar elemento
+    mov x22, #12         // 3 * 4
+    mul x23, x19, x22    // i * (3 * 4)
+    mov x24, #4
+    mul x25, x21, x24    // j * 4
+    add x23, x23, x25    // offset total
+
+    adrp x20, result
+    add x20, x20, :lo12:result
+    ldr w1, [x20, x23]   // cargar resultado[i][j]
+
+    // Imprimir elemento
+    adrp x0, fmt_output
+    add x0, x0, :lo12:fmt_output
+    bl printf
+
+    add x21, x21, #1     // j++
+    b print_loop_j
+
+end_print_loop_j:
+    // Nueva línea al final de cada fila
+    adrp x0, new_line
+    add x0, x0, :lo12:new_line
+    bl printf
+
+    add x19, x19, #1     // i++
+    b print_loop_i
+
+end_print_loop_i:
+    // Epílogo
+    ldp x29, x30, [sp], 16
+    ret
+---------------------------------------------------------------Codigo en C# de Multiplicación de matrices
+using System;
+
+class MatrixOperations
+{
+    const int N = 3; // Filas
+    const int M = 3; // Columnas
+
+    static void Main()
+    {
+        // Matrices
+        int[,] matrix1 = new int[N, M];
+        int[,] matrix2 = new int[N, M];
+        int[,] result = new int[N, M];
+
+        // Leer primera matriz
+        Console.WriteLine("\nIngrese los elementos de la primera matriz 3x3:");
+        ReadMatrix(matrix1);
+
+        // Leer segunda matriz
+        Console.WriteLine("\nIngrese los elementos de la segunda matriz 3x3:");
+        ReadMatrix(matrix2);
+
+        // Realizar la multiplicación
+        MultiplyMatrices(matrix1, matrix2, result);
+
+        // Mostrar resultado
+        Console.WriteLine("\nMatriz resultado:");
+        PrintMatrix(result);
+    }
+
+    // Función para leer la matriz
+    static void ReadMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"Ingrese elemento [{i}][{j}]: ");
+                matrix[i, j] = int.Parse(Console.ReadLine());
+            }
+        }
+    }
+
+    // Función para multiplicar las matrices
+    static void MultiplyMatrices(int[,] matrix1, int[,] matrix2, int[,] result)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                result[i, j] = 0; // Inicializar el elemento resultante
+                for (int k = 0; k < M; k++)
+                {
+                    result[i, j] += matrix1[i, k] * matrix2[k, j]; // Multiplicación y acumulación
+                }
+            }
+        }
+    }
+
+    // Función para imprimir la matriz
+    static void PrintMatrix(int[,] matrix)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < M; j++)
+            {
+                Console.Write($"{matrix[i, j],4} ");
+            }
+            Console.WriteLine();
+        }
+    }
+}
